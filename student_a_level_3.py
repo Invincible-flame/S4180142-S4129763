@@ -1,99 +1,106 @@
-import pyhtml
-def get_page_html(form_data):
-    print("About to return page 3")
-    #Create the top part of the webpage
-    #Note that the drop down list ('select' HTML element) has been given the name "var_star"
-    #We will use this same name in our code further below to obtain what the user selected.
-    page_html="""<!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <title>Page 3A - Forms, databases and advanced queries</title>
-    </head>
-    <body>
-        <h1>Welcome to Page 3a!</h1>
-        <p>List the movies based on the star</p>
-        <form action="/page3a" method="GET">
-        
-          <label for="var_star">Movie Star</label>
-          <select name="var_star" multiple>"""
-    #Before you read further, play around with the web-page and note how selecting a star name from the first
-    #drop down list populates the second drop down list with the movies in which they have featured.
-    
-    #Note that although we see the name of the movie star in the first drop down list, when a star is selected and submitted,
-    #our program receives the star's ID (primary key).
-    
-    ################################ Movie star drop down list is generated below ######################################
-          
+def get_page_html(form_data=None):
+    print("About to return page 2 (static version)")
 
-    #Put the query together.
-    query = "select * from star;"
-    
-    #Run the query on the movies.db in the 'database' folder and get the results
-    #Note that all results are in the str data type first, even if they had different types in the database.
-    results = pyhtml.get_results_from_query("database/movies.db",query)
-    
-    #Get the value or values in the HTML dropdown list that we named "var_star" or None no data was sent through.
-    #If the user selects multiple movie stars on the web_page, we will have multiple values.
-    var_star = form_data.get('var_star')
-    
-    print("var_star selected on webpage is: ",var_star)
-    
-    #If the user had selected one or more stars on the web-page, convert their IDs to int
-    if(var_star!=None):
-        #Take the list of strings and convert the items to ints
-        var_star = [int(star) for star in var_star]
-    
-    #Create the drop down list of movie stars
-    for row in results:
-        #row[0] is the ID/primary key of the movie stars
-        page_html+='<option value="'+str(row[0])+'"'
-        #If there was a previous selection of a star on the web page, have them selected by default to be user-friendly.
-        if var_star!=None and row[0]==var_star[0]:
-            page_html+=' selected="selected"'
-            
-        #row[1] is the name of the star, which is what the user sees in the drop down list.
-        page_html+='>'+str(row[1])+'</option>'
-        
-    page_html+="</select><br><br>"
+    page_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australia Climate Watch - State View</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <h1>Australia Climate Watch</h1>
+        <nav class="nav-bar">
+            <a href="/">Home</a>
+            <a href="/page2a" class="active">State View</a>
+            <a href="/page3a">Compare Regions</a>
+        </nav>
+    </header>
 
+    <main class="state-view-main">
+        <section class="state-selection">
+            <h2>Select state</h2>
+            <div class="state-buttons">
+                <button class="state-btn">VIC</button>
+                <button class="state-btn">NSW</button>
+                <button class="state-btn">QLD</button>
+                <button class="state-btn">WA</button>
+                <button class="state-btn">SA</button>
+                <button class="state-btn">TAS</button>
+                <button class="state-btn">NT</button>
+            </div>
+        </section>
 
+        <section class="station-info">
+            <h3>STATION: Adelaide Airport</h3>
+            <p><strong>STATION ID:</strong> 260123</p>
+            <div class="station-stats">
+                <div class="stat-item">🔥 <strong>Max Temp:</strong> 33°C</div>
+                <div class="stat-item">🌧️ <strong>Rainfall This Week:</strong> 12mm</div>
+                <div class="stat-item alert">🚨 <strong>Status:</strong> Fire Alert Active</div>
+            </div>
+            <a href="#" class="view-station-btn">View Station →</a>
+        </section>
 
-    ################################ Movies drop down list is generated below ##########################################
-    
-    page_html+="""<label for="var_movie">Movie</label>
-    <select name="var_movie" """
+        <section class="filter-search">
+            <h3>FILTER SEARCH</h3>
+            <div class="filter-options">
+                <label><input type="checkbox" name="filter" value="rain"> Most Rain</label>
+                <label><input type="checkbox" name="filter" value="temp"> Highest Temp</label>
+                <label><input type="checkbox" name="filter" value="fire"> Fire Alerts</label>
+                <label><input type="checkbox" name="filter" value="safe"> Safe Zones</label>
+            </div>
+        </section>
 
-    #We create this drop down list only if a movie star was chosen
-    if var_star!=None:
-        #Query for getting the list of movie IDs and their titles by star
-        query ="""SELECT movie.mvnumb, movie.mvtitle 
-        FROM movie 
-        JOIN movstar ON movie.mvnumb = movstar.mvnumb """
-        query+=f"WHERE movstar.starnumb = {var_star[0]};"
+        <section class="station-detail">
+            <h3>STATION NAME: ADELAIDE STATION</h3>
+            <div class="alert-box">
+                <p>⚠️ "A Fire Warning is in effect – Stay indoors 2–5pm"</p>
+            </div>
+            <div class="text-summary">
+                <p>"This region will experience dry heat and minimal rainfall for the next 5 days. No flooding risk detected."</p>
+            </div>
+        </section>
 
-        #Run query and get results
-        results = pyhtml.get_results_from_query("database/movies.db",query)
-        page_html+=" >"
-        #row[0] is the movie ID (primary key) and row[1] is the movie title
-        for row in results:
-            page_html+='<option value="'+str(row[0])+'"\>'+str(row[1])+'</option>'
-    else:
-        #If no movie star was chosen, we create a dummy list and make it disabled so the user sees the movie drop down
-        #but they can't access it.
-        page_html+="disabled>"
-        page_html+='<option>Choose a star</option>'
-    page_html+="</select><br><br>"
+        <section class="database-results">
+            <h2>Database Results (Sample Static Table)</h2>
+            <table class='data-table'>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Year</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>Firestorm</td>
+                    <td>2023</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Rainy Days</td>
+                    <td>2021</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Climate Shift</td>
+                    <td>2022</td>
+                </tr>
+            </table>
+        </section>
+    </main>
 
-    page_html+="""
-    <input type="submit" value="Show starred movies">
-    </form>
-        <p><a href="/">Go to Page 1A</a></p>
-        <p><a href="/page2a">Go to Page 2A</a></p>
-        <p><a href="/page3a">Go to Page 3A</a></p>
-        <p><a href="/page1b">Go to Page 1B</a></p>
-        <p><a href="/page2b">Go to Page 2B</a></p>
-        <p><a href="/page3b">Go to Page 3B</a></p>
-    </body>
-    </html>
-    """
+    <footer class="site-footer">
+        <div class="footer-icons">ⓘ ♿ 🎧</div>
+        <div class="footer-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Contact</a>
+            <a href="#">About</a>
+        </div>
+    </footer>
+</body>
+</html>
+"""
     return page_html
+

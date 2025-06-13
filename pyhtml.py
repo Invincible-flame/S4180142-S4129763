@@ -9,10 +9,11 @@ import http.server
 import socketserver
 from urllib.parse import parse_qs, urlparse
 
-need_debugging_help=True
+need_debugging_help = True
 
 class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
-    pages={}
+    pages = {}
+
     def do_GET(self):
         parsed_url = urlparse(self.path)
         debugging_helper(f"A web browser wants to GET the following: {parsed_url.path}")
@@ -22,16 +23,18 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
 
             query = parsed_url.query
-            form_data = parse_qs(query)
+            form_data_raw = parse_qs(query)
+            # ✅ Flatten the parsed query dictionary (list values → single value)
+            form_data = {k: v[0] for k, v in form_data_raw.items()}
+
             debugging_helper(f"\tReceived following data with GET request: {form_data}")
-            
+
             html_content = MyRequestHandler.pages[parsed_url.path].get_page_html(form_data)
-            
-            self.wfile.write(html_content.encode('utf-8'))            
+
+            self.wfile.write(html_content.encode('utf-8'))
         else:
             # Let the server handle static files (like images, .html files)
             super().do_GET()
-            
 
 def host_site():
     # Set the port
@@ -40,27 +43,26 @@ def host_site():
     # Create the HTTP server
     with socketserver.TCPServer(("", PORT), MyRequestHandler) as httpd:
         print("Using your favourite browser, go to:\n")
-        if (PORT==80):
+        if (PORT == 80):
             print("http://localhost")
         print(f"or\nhttp://localhost:{PORT}\n")
         httpd.serve_forever()
-        
-        
-def get_results_from_query(database,query):
+
+def get_results_from_query(database, query):
     debugging_helper("\n------------------------")
-    debugging_helper("Opening database \""+database+"\"... ")
+    debugging_helper("Opening database \"" + database + "\"... ")
     connection = sqlite3.connect(database)
-    cursor=connection.cursor()
+    cursor = connection.cursor()
     debugging_helper("done\n")
-    debugging_helper("Executing query \""+query+"\"... ")
+    debugging_helper("Executing query \"" + query + "\"... ")
     cursor.execute(query)
     debugging_helper("done\n")
     debugging_helper("Fetching results...\n")
-    results = cursor.fetchall();
+    results = cursor.fetchall()
     debugging_helper(results)
     debugging_helper("\n------------------------")
     return results
 
 def debugging_helper(message):
     if (need_debugging_help):
-        print(message,)
+        print(message)
