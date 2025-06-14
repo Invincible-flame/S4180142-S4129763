@@ -3,27 +3,34 @@ import pyhtml
 
 def get_page_html(form_data=None):
     print("About to return State View page")
-    print(f"Raw form_data: {form_data}")  # Debug print to check exact received data
+    print(f"Raw form_data: {form_data}")
 
-    # Get user inputs safely from form or set defaults
-    if form_data and 'state' in form_data:
-        # form_data values might be a list, get first element safely
-        state_raw = form_data.get('state')
-        if isinstance(state_raw, list):
-            state = state_raw[0]
-        else:
-            state = state_raw
-    else:
-        state = ''
+    # Helper to extract values from form_data
+    def extract_value(data, key, default):
+        if not data:
+            return default
+        val = data.get(key, default)
+        if isinstance(val, list):
+            return val[0]
+        return val
 
-    # Hardcoded latitudes for testing
-    lat_start_val = -38.0
-    lat_end_val = -34.0
+    # Get user input safely
+    state = extract_value(form_data, 'state', '')
+    metric = extract_value(form_data, 'metric', 'MaxTemp')
+    sort_by = extract_value(form_data, 'sort_by', 'Region')
 
-    metric = form_data.get('metric', ['MaxTemp'])[0] if form_data else 'MaxTemp'
-    sort_by = form_data.get('sort_by', ['Region'])[0] if form_data else 'Region'
+    print(f"Parsed inputs -> state: {state}, metric: {metric}, sort_by: {sort_by}")
 
-    print(f"Parsed inputs -> state: {state}, metric: {metric}, sort_by: {sort_by}")  # Debug print
+    lat_start_val = -90.0
+    lat_end_val = 90.0
+
+    # Translate UI metric name to actual column in DB
+    metric_column_map = {
+        'MaxTemp': 'MaxTemp',
+        'MinTemp': 'MinTemp',
+        'Rainfall': 'Precipitation'
+    }
+    actual_metric_column = metric_column_map.get(metric, 'MaxTemp')
 
     table1_results, table2_results = [], []
     error_msg = ""
@@ -32,14 +39,9 @@ def get_page_html(form_data=None):
         if not state:
             error_msg = "Please select a state."
         else:
-            # Escape single quotes for safety
             state_escaped = state.replace("'", "''")
 
-            valid_metrics = ['MaxTemp', 'MinTemp', 'Rainfall']
             valid_sort_by = ['Region', 'Number_Weather_Stations', 'Average_Metric']
-
-            if metric not in valid_metrics:
-                metric = 'MaxTemp'
             if sort_by not in valid_sort_by:
                 sort_by = 'Region'
 
@@ -54,7 +56,7 @@ def get_page_html(form_data=None):
             query2 = f"""
                 SELECT s.Region,
                        COUNT(*) AS Number_Weather_Stations,
-                       ROUND(AVG(w.{metric}), 2) AS Average_Metric
+                       ROUND(AVG(w.{actual_metric_column}), 2) AS Average_Metric
                 FROM WeatherData w
                 JOIN Sites s ON w.Location = s.SiteID
                 WHERE s.State = '{state_escaped}'
@@ -87,13 +89,12 @@ def get_page_html(form_data=None):
 </head>
 <body>
   <header class="site-header">
-    <h1>Explore Weather Stations</h1> <h1>Australia Climate Watch</h1>
-        <nav class="nav-bar">
-            <a href="/" class="active">Home</a>
-            <a href="/page2a">State View</a>
-            <a href="/page3a">Compare Regions</a>
-        </nav>
-
+    <h1>Australia Climate Watch</h1>
+    <nav class="nav-bar">
+        <a href="/" class="">Home</a>
+        <a href="/page2a" class="active">State View</a>
+        <a href="/page3a">Compare Regions</a>
+    </nav>
   </header>
 
   <main class="state-view-main">
@@ -101,7 +102,7 @@ def get_page_html(form_data=None):
       <label>State:
         <select name='state' required>
           <option value=''>--Select--</option>
-          {''.join([f"<option value='{s}' {'selected' if s == state else ''}>{s}</option>" for s in ['VIC','NSW','QLD','WA','SA','TAS','NT','ACT']])}
+          {''.join([f"<option value='{s}' {'selected' if s == state else ''}>{s}</option>" for s in ['VIC','N.S.W.','QLD','W.A.','S.A.','TAS','N.T.','ACT']])}
         </select>
       </label>
       <p>Latitude range is fixed for testing: from {lat_start_val} to {lat_end_val}</p>
@@ -128,7 +129,7 @@ def get_page_html(form_data=None):
     <p style='color:red;'>{error_msg}</p>
 
     <section class="station-info">
-      <h2>📍 Weather Stations in Selected State</h2>
+      <h2>Weather Stations in Selected State</h2>
       <table class="data-table" border='1'>
         <thead>
           <tr><th>Site Name</th><th>Region</th><th>Latitude</th></tr>
@@ -140,7 +141,7 @@ def get_page_html(form_data=None):
     </section>
 
     <section class="station-detail">
-      <h2>📊 Regional Climate Summary</h2>
+      <h2>Regional Climate Summary</h2>
       <table class="data-table" border='1'>
         <thead>
           <tr><th>Region</th><th>Number Weather Stations</th><th>Average {metric}</th></tr>
@@ -153,10 +154,16 @@ def get_page_html(form_data=None):
   </main>
 
   <footer class="site-footer">
-    <p>&copy; 2025 Climate Data Viewer</p>
+        <div class="footer-icons">ⓘ ♿ 🎧</div>
+        <div class="footer-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Contact</a>
+            <a href="#">About</a>
+        </div>
   </footer>
 </body>
 </html>
 """
+
 
 
